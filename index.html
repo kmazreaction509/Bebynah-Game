@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ff69b4">
+<title>Ti Princess - Aprann pandan w ap jwe</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'Trebuchet MS',Arial,sans-serif;background:#fff0f7;color:#57234b;text-align:center}
+header{background:linear-gradient(135deg,#ff69b4,#9b59b6);color:white;padding:25px 12px;padding-top:calc(25px + env(safe-area-inset-top,0px));border-radius:0 0 30px 30px}
+header h1{font-size:30px;margin:5px}
+header p{margin:5px}
+.stars{background:#fff;color:#a64d91;border-radius:25px;padding:9px 17px;display:inline-block;margin-top:10px;font-weight:bold}
+main{max-width:650px;margin:auto;padding:18px}
+h2{color:#a33c91}
+.menu{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+button{border:0;border-radius:20px;padding:17px 10px;font-size:18px;font-weight:bold;cursor:pointer;color:#63305d;box-shadow:0 4px 8px #00000015}
+.menu button{min-height:110px;background:white}
+.menu button span{display:block;font-size:35px;margin-bottom:8px}
+button:active{transform:scale(.97)}
+#game{display:none;background:white;border-radius:25px;padding:20px;margin-top:18px;min-height:300px}
+#question{font-size:25px;font-weight:bold;margin:15px}
+#display{font-size:75px;margin:15px}
+.answers{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:15px}
+.answers button{background:#ffe0f0;font-size:25px;min-height:70px}
+#feedback{font-size:22px;font-weight:bold;min-height:35px;margin:15px}
+.back{background:#e9d5f5;margin-top:15px}
+footer{padding:20px;color:#a06a91;font-size:13px}
+@media(max-width:350px){.menu{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>👑 Ti Princess 👑</h1>
+<p>Aprann pandan w ap jwe!</p>
+<div class="stars">⭐ Zetwal mwen: <span id="stars">0</span></div>
+</header>
+<main>
+<h2>Bonjou, ti prensès! 💖</h2>
+<p>Ki sa ou ta renmen aprann jodi a?</p>
+<div class="menu" id="menu">
+<button onclick="start('letters')"><span>🔤</span>Alfabè</button>
+<button onclick="start('numbers')"><span>🔢</span>Chif yo</button>
+<button onclick="start('colors')"><span>🎨</span>Koulè yo</button>
+<button onclick="start('animals')"><span>🐶</span>Bèt yo</button>
+<button onclick="start('shapes')"><span>🔺</span>Fòm yo</button>
+<button onclick="start('mix')"><span>🎁</span>Ti tès mwen</button>
+</div>
+<section id="game">
+<div id="question"></div>
+<div id="display"></div>
+<div class="answers" id="answers"></div>
+<div id="feedback"></div>
+<button onclick="nextQuestion()" id="next" style="display:none;background:#b9f3ce">Kontinye ➜</button>
+<br>
+<button class="back" onclick="home()">🏠 Retounen lakay</button>
+</section>
+</main>
+<footer>Made with ❤️ pou ti prensès yo.</footer>
+<script>
+const lessons={
+letters:[
+["Ki lèt sa a?","A",["A","B","C","D"]],
+["Ki lèt sa a?","B",["A","B","D","E"]],
+["Ki lèt sa a?","C",["C","A","F","G"]],
+["Ki lèt sa a?","D",["B","D","E","F"]],
+["Ki lèt sa a?","E",["A","E","C","G"]],
+["Ki lèt sa a?","F",["F","D","B","A"]],
+["Ki lèt sa a?","G",["G","C","E","A"]],
+["Ki lèt sa a?","H",["H","A","B","D"]]
+],
+numbers:[
+["Konbyen pòm ki genyen?","🍎",["1","2","3","4"],"2"],
+["Konbyen zetwal ki genyen?","⭐⭐⭐",["2","3","4","5"],"3"],
+["Ki chif sa a?","5",["3","5","7","9"]],
+["Ki chif sa a?","8",["6","8","2","4"]],
+["Konbyen kè ki genyen?","❤️❤️❤️❤️",["3","4","5","6"],"4"]
+],
+colors:[
+["Ki koulè sa a?","🔴",["Wouj","Ble","Vèt","Jòn"],"Wouj"],
+["Ki koulè sa a?","🔵",["Wouj","Ble","Vèt","Woz"],"Ble"],
+["Ki koulè sa a?","🟡",["Jòn","Nwa","Blan","Wouj"],"Jòn"],
+["Ki koulè sa a?","🟢",["Ble","Woz","Vèt","Jòn"],"Vèt"],
+["Ki koulè sa a?","💗",["Vyolèt","Woz","Wouj","Nwa"],"Woz"]
+],
+animals:[
+["Ki bèt sa a?","🐱",["Chat","Chen","Bèf","Kabrit"],"Chat"],
+["Ki bèt sa a?","🐶",["Chen","Chat","Chwal","Kanna"],"Chen"],
+["Ki bèt sa a?","🐄",["Kabrit","Bèf","Poul","Chat"],"Bèf"],
+["Ki bèt sa a?","🦁",["Chen","Lyon","Chat","Makak"],"Lyon"],
+["Ki bèt sa a?","🐘",["Chwal","Bèf","Elefan","Kanna"],"Elefan"]
+],
+shapes:[
+["Ki fòm sa a?","🔴",["Sèk","Kare","Triyang","Rektang"],"Sèk"],
+["Ki fòm sa a?","🟦",["Sèk","Kare","Triyang","Rektang"],"Kare"],
+["Ki fòm sa a?","🔺",["Sèk","Kare","Triyang","Rektang"],"Triyang"],
+["Ki fòm sa a?","▭",["Sèk","Kare","Triyang","Rektang"],"Rektang"]
+]
+};
+let current=[],index=0,score=0,stars=0;
+try{stars=Number(localStorage.getItem("princessStars")||0);}catch(e){}
+document.getElementById("stars").textContent=stars;
+function start(type){
+current=type==="mix"?[...lessons.letters,...lessons.numbers,...lessons.colors,...lessons.animals,...lessons.shapes]:lessons[type];
+current=[...current].sort(()=>Math.random()-.5);
+index=0;score=0;
+document.getElementById("menu").style.display="none";
+document.getElementById("game").style.display="block";
+showQuestion();
+}
+function showQuestion(){
+let q=current[index];
+document.getElementById("question").textContent=q[0];
+document.getElementById("display").textContent=q[1];
+document.getElementById("feedback").textContent="";
+document.getElementById("next").style.display="none";
+let correct=q[3]||q[1];
+let choices=[...q[2]];
+let area=document.getElementById("answers");
+area.innerHTML="";
+choices.sort(()=>Math.random()-.5).forEach(choice=>{
+let b=document.createElement("button");
+b.textContent=choice;
+b.onclick=()=>answer(choice,correct);
+area.appendChild(b);
+});
+}
+function answer(choice,correct){
+let buttons=document.querySelectorAll(".answers button");
+buttons.forEach(b=>b.disabled=true);
+if(choice===correct){
+document.getElementById("feedback").textContent="🎉 Bravo! Ou jwenn yon zetwal! ⭐";
+score++;stars++;
+try{localStorage.setItem("princessStars",stars);}catch(e){}
+document.getElementById("stars").textContent=stars;
+}else{
+document.getElementById("feedback").textContent="😊 Eseye ankò! Bon kouraj!";
+}
+document.getElementById("next").style.display="inline-block";
+document.getElementById("next").textContent=index===current.length-1?"Gade rezilta 🏆":"Kontinye ➜";
+}
+function nextQuestion(){
+index++;
+if(index>=current.length){
+document.getElementById("question").textContent="🎉 Ou fini!";
+document.getElementById("display").textContent="🏆";
+document.getElementById("answers").innerHTML="";
+document.getElementById("feedback").textContent="Ou jwenn "+score+" bon repons sou "+current.length+". Mwen fyè de ou!";
+document.getElementById("next").style.display="none";
+return;
+}
+showQuestion();
+}
+function home(){
+document.getElementById("game").style.display="none";
+document.getElementById("menu").style.display="grid";
+}
+</script>
+</body>
+</html>

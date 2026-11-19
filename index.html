@@ -26,6 +26,8 @@ button:active{transform:scale(.97)}
 .answers button{background:#ffe0f0;font-size:25px;min-height:70px}
 #feedback{font-size:22px;font-weight:bold;min-height:35px;margin:15px}
 .back{background:#e9d5f5;margin-top:15px}
+.listen{background:#d6ecff;margin:5px 0 10px}
+#mute{background:#fff;color:#a64d91;margin-left:8px;padding:8px 14px;font-size:18px;border-radius:25px}
 footer{padding:20px;color:#a06a91;font-size:13px}
 @media(max-width:350px){.menu{grid-template-columns:1fr}}
 </style>
@@ -34,7 +36,7 @@ footer{padding:20px;color:#a06a91;font-size:13px}
 <header>
 <h1>👑 Ti Princess 👑</h1>
 <p>Aprann pandan w ap jwe!</p>
-<div class="stars">⭐ Zetwal mwen: <span id="stars">0</span></div>
+<div class="stars">⭐ Zetwal mwen: <span id="stars">0</span></div><button id="mute" onclick="toggleVoice()">🔊</button>
 </header>
 <main>
 <h2>Bonjou, ti prensès! 💖</h2>
@@ -50,6 +52,7 @@ footer{padding:20px;color:#a06a91;font-size:13px}
 <section id="game">
 <div id="question"></div>
 <div id="display"></div>
+<button class="listen" onclick="speakQuestion()">🔊 Tande</button>
 <div class="answers" id="answers"></div>
 <div id="feedback"></div>
 <button onclick="nextQuestion()" id="next" style="display:none;background:#b9f3ce">Kontinye ➜</button>
@@ -98,6 +101,47 @@ shapes:[
 ["Ki fòm sa a?","▭",["Sèk","Kare","Triyang","Rektang"],"Rektang"]
 ]
 };
+let voiceOn=true;
+function pickVoice(){
+const v=speechSynthesis.getVoices();
+return v.find(x=>x.lang.toLowerCase().startsWith("ht"))||v.find(x=>x.lang.toLowerCase().startsWith("fr"))||null;
+}
+function speak(t){
+if(!voiceOn||!("speechSynthesis" in window))return;
+try{
+speechSynthesis.cancel();
+const u=new SpeechSynthesisUtterance(t);
+const v=pickVoice();
+if(v){u.voice=v;u.lang=v.lang;}else{u.lang="fr-FR";}
+u.rate=.85;u.pitch=1.3;
+speechSynthesis.speak(u);
+}catch(e){}
+}
+function speakQuestion(){
+if(!current.length)return;
+let q=current[index];
+
+speak(q[0]);
+}
+function toggleVoice(){
+voiceOn=!voiceOn;
+document.getElementById("mute").textContent=voiceOn?"🔊":"🔇";
+if(!voiceOn&&"speechSynthesis" in window)speechSynthesis.cancel();
+}
+let ac;
+function tone(freqs){
+try{
+ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+freqs.forEach((f,i)=>{
+const o=ac.createOscillator(),g=ac.createGain();
+o.frequency.value=f;o.connect(g);g.connect(ac.destination);
+const t=ac.currentTime+i*.15;
+g.gain.setValueAtTime(.2,t);
+g.gain.exponentialRampToValueAtTime(.001,t+.14);
+o.start(t);o.stop(t+.15);
+});
+}catch(e){}
+}
 let current=[],index=0,score=0,stars=0;
 try{stars=Number(localStorage.getItem("princessStars")||0);}catch(e){}
 document.getElementById("stars").textContent=stars;
@@ -125,6 +169,7 @@ b.textContent=choice;
 b.onclick=()=>answer(choice,correct);
 area.appendChild(b);
 });
+setTimeout(speakQuestion,300);
 }
 function answer(choice,correct){
 let buttons=document.querySelectorAll(".answers button");
@@ -132,10 +177,14 @@ buttons.forEach(b=>b.disabled=true);
 if(choice===correct){
 document.getElementById("feedback").textContent="🎉 Bravo! Ou jwenn yon zetwal! ⭐";
 score++;stars++;
+tone([660,880,1100]);
+speak("Bravo! "+correct);
 try{localStorage.setItem("princessStars",stars);}catch(e){}
 document.getElementById("stars").textContent=stars;
 }else{
 document.getElementById("feedback").textContent="😊 Eseye ankò! Bon kouraj!";
+tone([300,220]);
+speak("Eseye ankò");
 }
 document.getElementById("next").style.display="inline-block";
 document.getElementById("next").textContent=index===current.length-1?"Gade rezilta 🏆":"Kontinye ➜";
@@ -148,11 +197,14 @@ document.getElementById("display").textContent="🏆";
 document.getElementById("answers").innerHTML="";
 document.getElementById("feedback").textContent="Ou jwenn "+score+" bon repons sou "+current.length+". Mwen fyè de ou!";
 document.getElementById("next").style.display="none";
+tone([523,659,784,1047]);
+speak("Ou fini! Ou jwenn "+score+" bon repons sou "+current.length);
 return;
 }
 showQuestion();
 }
 function home(){
+if("speechSynthesis" in window)speechSynthesis.cancel();
 document.getElementById("game").style.display="none";
 document.getElementById("menu").style.display="grid";
 }

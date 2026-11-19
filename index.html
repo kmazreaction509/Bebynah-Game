@@ -17,13 +17,14 @@ h2{color:#a33c91}
 .menu{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 button{border:0;border-radius:20px;padding:17px 10px;font-size:18px;font-weight:bold;cursor:pointer;color:#63305d;box-shadow:0 4px 8px #00000015}
 .menu button{min-height:110px;background:white}
+.menu button:last-child{grid-column:1/-1}
 .menu button span{display:block;font-size:35px;margin-bottom:8px}
 button:active{transform:scale(.97)}
 #game{display:none;background:white;border-radius:25px;padding:20px;margin-top:18px;min-height:300px}
 #question{font-size:25px;font-weight:bold;margin:15px}
 #display{font-size:75px;margin:15px}
 .answers{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:15px}
-.answers button{background:#ffe0f0;font-size:25px;min-height:70px}
+.answers button{background:#ffe0f0;font-size:27px;min-height:70px}
 #feedback{font-size:22px;font-weight:bold;min-height:35px;margin:15px}
 .back{background:#e9d5f5;margin-top:15px}
 .listen{background:#d6ecff;margin:5px 0 10px}
@@ -47,6 +48,7 @@ footer{padding:20px;color:#a06a91;font-size:13px}
 <button onclick="start('colors')"><span>🎨</span>Koulè yo</button>
 <button onclick="start('animals')"><span>🐶</span>Bèt yo</button>
 <button onclick="start('shapes')"><span>🔺</span>Fòm yo</button>
+<button onclick="start('words')"><span>📖</span>Mo yo</button>
 <button onclick="start('mix')"><span>🎁</span>Ti tès mwen</button>
 </div>
 <section id="game">
@@ -62,71 +64,72 @@ footer{padding:20px;color:#a06a91;font-size:13px}
 </main>
 <footer>Made with ❤️ pou ti prensès yo.</footer>
 <script>
-const lessons={
-letters:[
-["Ki lèt sa a?","A",["A","B","C","D"]],
-["Ki lèt sa a?","B",["A","B","D","E"]],
-["Ki lèt sa a?","C",["C","A","F","G"]],
-["Ki lèt sa a?","D",["B","D","E","F"]],
-["Ki lèt sa a?","E",["A","E","C","G"]],
-["Ki lèt sa a?","F",["F","D","B","A"]],
-["Ki lèt sa a?","G",["G","C","E","A"]],
-["Ki lèt sa a?","H",["H","A","B","D"]]
-],
-numbers:[
-["Konbyen pòm ki genyen?","🍎",["1","2","3","4"],"2"],
-["Konbyen zetwal ki genyen?","⭐⭐⭐",["2","3","4","5"],"3"],
-["Ki chif sa a?","5",["3","5","7","9"]],
-["Ki chif sa a?","8",["6","8","2","4"]],
-["Konbyen kè ki genyen?","❤️❤️❤️❤️",["3","4","5","6"],"4"]
-],
-colors:[
-["Ki koulè sa a?","🔴",["Wouj","Ble","Vèt","Jòn"],"Wouj"],
-["Ki koulè sa a?","🔵",["Wouj","Ble","Vèt","Woz"],"Ble"],
-["Ki koulè sa a?","🟡",["Jòn","Nwa","Blan","Wouj"],"Jòn"],
-["Ki koulè sa a?","🟢",["Ble","Woz","Vèt","Jòn"],"Vèt"],
-["Ki koulè sa a?","💗",["Vyolèt","Woz","Wouj","Nwa"],"Woz"]
-],
-animals:[
-["Ki bèt sa a?","🐱",["Chat","Chen","Bèf","Kabrit"],"Chat"],
-["Ki bèt sa a?","🐶",["Chen","Chat","Chwal","Kanna"],"Chen"],
-["Ki bèt sa a?","🐄",["Kabrit","Bèf","Poul","Chat"],"Bèf"],
-["Ki bèt sa a?","🦁",["Chen","Lyon","Chat","Makak"],"Lyon"],
-["Ki bèt sa a?","🐘",["Chwal","Bèf","Elefan","Kanna"],"Elefan"]
-],
-shapes:[
-["Ki fòm sa a?","🔴",["Sèk","Kare","Triyang","Rektang"],"Sèk"],
-["Ki fòm sa a?","🟦",["Sèk","Kare","Triyang","Rektang"],"Kare"],
-["Ki fòm sa a?","🔺",["Sèk","Kare","Triyang","Rektang"],"Triyang"],
-["Ki fòm sa a?","▭",["Sèk","Kare","Triyang","Rektang"],"Rektang"]
-]
-};
 let voiceOn=true;
 function pickVoice(){
 const v=speechSynthesis.getVoices();
 return v.find(x=>x.lang.toLowerCase().startsWith("ht"))||v.find(x=>x.lang.toLowerCase().startsWith("fr"))||null;
 }
-function speak(t){
-if(!voiceOn||!("speechSynthesis" in window))return;
+function slug(t){
+return String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+}
+let seqId=0,curAudio=null;
+function playFile(url){
+return new Promise(res=>{
+let done=false;
+const fin=v=>{if(!done){done=true;res(v);}};
 try{
-speechSynthesis.cancel();
+const a=new Audio(url);
+curAudio=a;
+a.onended=()=>fin(true);
+a.onerror=()=>fin(false);
+a.play().catch(()=>fin(false));
+}catch(e){fin(false);}
+});
+}
+function ttsOne(t){
+return new Promise(res=>{
+if(!("speechSynthesis" in window)){res();return;}
+try{
 const u=new SpeechSynthesisUtterance(t);
 const v=pickVoice();
 if(v){u.voice=v;u.lang=v.lang;}else{u.lang="fr-FR";}
 u.rate=.85;u.pitch=1.3;
+u.onend=u.onerror=()=>res();
 speechSynthesis.speak(u);
-}catch(e){}
+setTimeout(res,6000);
+}catch(e){res();}
+});
+}
+async function playOne(t){
+const name=slug(t);
+for(const ext of ["mp3","m4a","ogg","wav"]){
+if(await playFile("audio/"+name+"."+ext))return;
+}
+await ttsOne(t);
+}
+function stopVoice(){
+seqId++;
+try{if(curAudio)curAudio.pause();}catch(e){}
+if("speechSynthesis" in window)speechSynthesis.cancel();
+}
+async function speak(...list){
+if(!voiceOn)return;
+stopVoice();
+const id=seqId;
+for(const t of list){
+if(id!==seqId)return;
+await playOne(t);
+}
 }
 function speakQuestion(){
 if(!current.length)return;
 let q=current[index];
-
-speak(q[0]);
+speak(q[5]||q[0]);
 }
 function toggleVoice(){
 voiceOn=!voiceOn;
 document.getElementById("mute").textContent=voiceOn?"🔊":"🔇";
-if(!voiceOn&&"speechSynthesis" in window)speechSynthesis.cancel();
+if(!voiceOn)stopVoice();
 }
 let ac;
 function tone(freqs){
@@ -142,12 +145,69 @@ o.start(t);o.stop(t+.15);
 });
 }catch(e){}
 }
+
+/* ====== DONE YO (modifye isit pou ajoute plis) ====== */
+const LETTERS="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const COLORS=[["🔴","Wouj"],["🔵","Ble"],["🟡","Jòn"],["🟢","Vèt"],["🟠","Oranj"],["🟣","Vyolèt"],["🟤","Mawon"],["⚫","Nwa"],["⚪","Blan"],["💗","Woz"]];
+const ANIMALS=[["🐶","Chen"],["🐱","Chat"],["🐄","Bèf"],["🐐","Kabrit"],["🐑","Mouton"],["🐷","Kochon"],["🐔","Poul"],["🐴","Chwal"],["🦆","Kanna"],["🐰","Lapen"],["🐭","Rat"],["🐦","Zwazo"],["🐟","Pwason"],["🐢","Tòti"],["🐍","Koulèv"],["🐸","Krapo"],["🦋","Papiyon"],["🐝","Myèl"],["🐜","Foumi"],["🦃","Kodenn"],["🐒","Makak"],["🦁","Lyon"],["🐘","Elefan"],["🐊","Kokodil"]];
+const SHAPES=[["🔴","Sèk"],["🟦","Kare"],["🔺","Triyang"],["▭","Rektang"]];
+const OBJECTS=[["🏠","Kay"],["💧","Dlo"],["🍞","Pen"],["📖","Liv"],["⚽","Bal"],["☀️","Solèy"],["🌙","Lalin"],["🍎","Pòm"],["🍌","Bannann"],["🎂","Gato"],["🍬","Bonbon"],["👟","Soulye"],["🚗","Machin"],["🚌","Bis"],["🌸","Flè"],["🌳","Pye bwa"],["🥭","Mango"],["🥚","Ze"]];
+const FAMILY=["Papa","Manman","Tati","Tonton","Granpapa","Grann","Frè","Sè","Ti moun","Bebe","Zanmi"];
+const THINGS=[["🍎","pòm"],["⭐","zetwal"],["🎈","balon"],["🐟","pwason"],["🍌","bannann"],["🌸","flè"]];
+
+const shuffle=a=>[...a].sort(()=>Math.random()-.5);
+const pick=(a,n)=>shuffle(a).slice(0,n);
+const R=a=>a[Math.floor(Math.random()*a.length)];
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+function opts(correct,pool){
+const others=shuffle(pool.filter(x=>x!==correct)).slice(0,3);
+return shuffle([correct,...others]);
+}
+function around(n,r,min,max){
+const p=[];
+for(let d=-r;d<=r;d++){const v=n+d;if(v>=min&&v<=max)p.push(String(v));}
+return p;
+}
+/* chak kesyon: [kesyon, sa ki montre, chwa yo, bon repons, sa vwa a di, sa vwa a li pou kesyon an] */
+function qLetters(){return LETTERS.map(l=>["Ki lèt sa a?",l,opts(l,LETTERS),l,l]);}
+function qColors(){return COLORS.map(([e,n])=>["Ki koulè sa a?",e,opts(n,COLORS.map(c=>c[1])),n,n]);}
+function qAnimals(k){return pick(ANIMALS,k).map(([e,n])=>["Ki bèt sa a?",e,opts(n,ANIMALS.map(c=>c[1])),n,n]);}
+function qShapes(){return SHAPES.map(([e,n])=>["Ki fòm sa a?",e,opts(n,SHAPES.map(c=>c[1])),n,n]);}
+function qNumbers(){
+const out=[];
+for(let i=0;i<8;i++){
+const n=i<4?rnd(1,20):rnd(21,100);
+out.push(["Ki chif sa a?",String(n),opts(String(n),around(n,10,1,100)),String(n),String(n)]);
+}
+for(let i=0;i<4;i++){
+const [e,w]=R(THINGS);const n=rnd(1,10);
+out.push(["Konbyen "+w+" ki genyen?",e.repeat(n),opts(String(n),around(n,5,1,12)),String(n),String(n)]);
+}
+for(let i=0;i<3;i++){
+const n=rnd(1,99);
+out.push(["Ki nimewo ki vini apre sa a?",String(n),opts(String(n+1),around(n+1,6,1,100)),String(n+1),String(n+1)]);
+}
+return out;
+}
+function qWords(){
+const out=[];
+pick(OBJECTS,4).forEach(([e,w])=>out.push(["Ki mo sa a?",e,opts(w,OBJECTS.map(o=>o[1])),w,w]));
+pick(OBJECTS,3).forEach(([e,w])=>out.push(["Ki imaj ki ale ak mo sa a?",w,opts(e,OBJECTS.map(o=>o[0])),e,w]));
+const all=[...FAMILY,...OBJECTS.map(o=>o[1])];
+pick(FAMILY,6).forEach(w=>out.push(["Tande epi chwazi mo a","🔊",opts(w,all),w,w,w]));
+return out;
+}
+const builders={letters:qLetters,numbers:qNumbers,colors:qColors,animals:()=>qAnimals(10),shapes:qShapes,words:qWords};
+
 let current=[],index=0,score=0,stars=0;
 try{stars=Number(localStorage.getItem("princessStars")||0);}catch(e){}
 document.getElementById("stars").textContent=stars;
 function start(type){
-current=type==="mix"?[...lessons.letters,...lessons.numbers,...lessons.colors,...lessons.animals,...lessons.shapes]:lessons[type];
-current=[...current].sort(()=>Math.random()-.5);
+if(type==="mix"){
+current=shuffle([...qLetters(),...qNumbers(),...qColors(),...qAnimals(6),...qShapes(),...qWords()]).slice(0,15);
+}else{
+current=shuffle(builders[type]());
+}
 index=0;score=0;
 document.getElementById("menu").style.display="none";
 document.getElementById("game").style.display="block";
@@ -156,29 +216,31 @@ showQuestion();
 function showQuestion(){
 let q=current[index];
 document.getElementById("question").textContent=q[0];
-document.getElementById("display").textContent=q[1];
+const d=document.getElementById("display");
+d.textContent=q[1];
+const len=[...q[1]].length;
+d.style.fontSize=len>8?"38px":(len>3?"50px":"75px");
 document.getElementById("feedback").textContent="";
 document.getElementById("next").style.display="none";
-let correct=q[3]||q[1];
-let choices=[...q[2]];
+let correct=q[3];
 let area=document.getElementById("answers");
 area.innerHTML="";
-choices.sort(()=>Math.random()-.5).forEach(choice=>{
+shuffle(q[2]).forEach(choice=>{
 let b=document.createElement("button");
 b.textContent=choice;
-b.onclick=()=>answer(choice,correct);
+b.onclick=()=>answer(choice,correct,q[4]);
 area.appendChild(b);
 });
 setTimeout(speakQuestion,300);
 }
-function answer(choice,correct){
+function answer(choice,correct,say){
 let buttons=document.querySelectorAll(".answers button");
 buttons.forEach(b=>b.disabled=true);
 if(choice===correct){
 document.getElementById("feedback").textContent="🎉 Bravo! Ou jwenn yon zetwal! ⭐";
 score++;stars++;
 tone([660,880,1100]);
-speak("Bravo! "+correct);
+speak("Bravo",say||correct);
 try{localStorage.setItem("princessStars",stars);}catch(e){}
 document.getElementById("stars").textContent=stars;
 }else{
@@ -194,17 +256,18 @@ index++;
 if(index>=current.length){
 document.getElementById("question").textContent="🎉 Ou fini!";
 document.getElementById("display").textContent="🏆";
+document.getElementById("display").style.fontSize="75px";
 document.getElementById("answers").innerHTML="";
 document.getElementById("feedback").textContent="Ou jwenn "+score+" bon repons sou "+current.length+". Mwen fyè de ou!";
 document.getElementById("next").style.display="none";
 tone([523,659,784,1047]);
-speak("Ou fini! Ou jwenn "+score+" bon repons sou "+current.length);
+speak("Ou fini");
 return;
 }
 showQuestion();
 }
 function home(){
-if("speechSynthesis" in window)speechSynthesis.cancel();
+stopVoice();
 document.getElementById("game").style.display="none";
 document.getElementById("menu").style.display="grid";
 }
